@@ -14,4 +14,13 @@ There are numerous advantages to this:
 - The LLM can make its own sub-LLM calls, with each sub-LLM also being an RLM (... you can see where this is going)
 
 ## How to run
-Make sure you have LM Studio and the `qwen/qwen3-4b` model loaded. Then fire away!
+
+### Using OpenAI
+Make sure you have `OPENAI_API_KEY` set, then simply use `cargo run`!
+
+### Locally
+Make sure you have LM Studio and the `qwen/qwen3-4b` model loaded, then change `fn main()` to use `RigRlm::new_local` rather than `RigRlm::new`. Then simply use `cargo run`.
+
+## TODO
+- Call into a sandbox rather than raw dogging user's file system
+- Make a Python function from Rust to call the LLM (`query_llm()`) then insert it into the pyo3 runtime
