@@ -1,0 +1,9 @@
+[package]
+name = "rig-rlm"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = "0.12.26"
+rig-core = "0.27.0"
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
