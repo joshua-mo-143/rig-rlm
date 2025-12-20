@@ -1,7 +1,7 @@
 //! A module for showcasing different types of execution environments.
 //! An execution environment within the confines of this program is simply defined as a place where code gets executed.
 //! This demo primarily targets Python code, as Python is an easy language to use/run and can be iterated on very quickly.
-//! Out of the box, you will be able to get to try two different envs: PyO3 (requires an installation of Python), and Firecracker (requires Firecracker installed).
+//! Out of the box, you will be able to get to try using PyO3 (requires an installation of Python).
 
 use std::ffi::CString;
 
