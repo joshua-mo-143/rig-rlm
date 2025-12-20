@@ -1,5 +1,6 @@
 use crate::llm::RigRlm;
 
+pub mod exec;
 pub mod llm;
 pub mod repl;
 

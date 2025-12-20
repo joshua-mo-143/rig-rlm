@@ -10,14 +10,20 @@ use rig::{
     providers::openai::responses_api::ResponsesCompletionModel,
 };
 
-use crate::repl::{Command, REPL};
+use crate::{
+    exec::{ExecutionEnvironment, Pyo3Executor},
+    repl::{Command, REPL},
+};
 
-pub struct RigRlm {
+pub struct RigRlm<T>
+where
+    T: ExecutionEnvironment,
+{
     agent: Agent<ResponsesCompletionModel>,
-    repl: REPL,
+    repl: REPL<T>,
 }
 
-impl RigRlm {
+impl RigRlm<Pyo3Executor> {
     pub fn new_local() -> Self {
         let agent = rig::providers::openai::Client::<reqwest::Client>::builder()
             .base_url("http://127.0.0.1:1234/v1")

@@ -4,7 +4,7 @@ This repository is intended to be a Rust rewrite of [the RLM demo repository.](h
 [Here is the original blogpost.](https://alexzhang13.github.io/blog/2025/rlm/)
 
 ## What actually is this repository supposed to showcase?
-Recursive Learning Models (RLMs for short) are a conceptually new agentic architecture where instead of tool calling, models will instead return commands that will then interact with some form of REPL (whether you're just parsing commands, writing code in an REPL or something else.) The model should also be able to call itself.
+Recursive Language Models (RLMs for short) are a conceptually new agentic architecture where instead of tool calling, models will instead return commands that will then interact with some form of REPL (whether you're just parsing commands, writing code in an REPL or something else.) The model should also be able to call itself.
 
 A REPL is simply defined as an execution boundary for code and other things to run in. There's multiple ways to define this, but this particular demo will use pyo3 to run Python functions.
 
@@ -22,5 +22,5 @@ Make sure you have `OPENAI_API_KEY` set, then simply use `cargo run`!
 Make sure you have LM Studio and the `qwen/qwen3-4b` model loaded, then change `fn main()` to use `RigRlm::new_local` rather than `RigRlm::new`. Then simply use `cargo run`.
 
 ## TODO
-- Call into a sandbox rather than raw dogging user's file system
+- Set up `impl ExecutionEnvironment` for Firecracker
 - Make a Python function from Rust to call the LLM (`query_llm()`) then insert it into the pyo3 runtime

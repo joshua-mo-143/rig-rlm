@@ -1,21 +1,31 @@
-use std::{collections::HashMap, ffi::CString, num::NonZeroI32};
+//! The REPL (Read-Eval-Print-Loop).
+//! Stores context as well as the execution environment data.
 
-use pyo3::{
-    Bound, Python,
-    types::{PyAnyMethods, PyDict, PyInt, PyNone, PyString, PyStringMethods},
-};
+use std::collections::HashMap;
 
-pub struct REPL {
+use crate::exec::{ExecutionEnvironment, Pyo3Executor};
+
+pub struct REPL<T>
+where
+    T: ExecutionEnvironment,
+{
     pub context: HashMap<String, String>,
+    exec: T,
 }
 
-impl REPL {
+impl REPL<Pyo3Executor> {
     pub fn new() -> Self {
         Self {
             context: HashMap::new(),
+            exec: Pyo3Executor,
         }
     }
+}
 
+impl<T> REPL<T>
+where
+    T: ExecutionEnvironment,
+{
     pub fn get_variable(&self, name: &str) -> Option<String> {
         self.context.get(name).cloned()
     }
@@ -35,49 +45,11 @@ impl REPL {
         } else if let Some(output) = command.get_final_command() {
             Ok(output)
         } else if let Some(code) = command.get_code_to_run() {
-            let string: String = Python::attach(|py| {
-                let io = py.import("io")?;
-                let sys = py.import("sys")?;
-
-                // Capture stdout
-                let string_io = io.call_method0("StringIO")?;
-                sys.setattr("stdout", &string_io)?;
-
-                let locals = PyDict::new(py);
-                locals.set_item("context", py.None())?;
-
-                let code = CString::new(code).unwrap();
-
-                // If there are any errors, we need to return them back to the LLM.
-                if let Err(e) = py.run(&code, None, Some(&locals)) {
-                    return Ok(e.to_string());
-                };
-
-                // Check for final_var first
-                if let Ok(ret) = locals.get_item("my_answer") {
-                    if let Ok(result) = ret.cast::<PyInt>() {
-                        return Ok::<String, pyo3::PyErr>(result.to_string());
-                    }
-                    if let Ok(result) = ret.cast::<PyString>() {
-                        return Ok(result.to_string());
-                    }
-                }
-
-                // If no final_var, return whatever was printed
-                let output = string_io.call_method0("getvalue")?;
-                Ok(output.to_string())
-            })?;
-
-            Ok(string)
+            let result = self.exec.execute_code(code)?;
+            Ok(result)
         } else {
             Err("Could not find command.".into())
         }
-    }
-}
-
-impl Default for REPL {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
