@@ -4,7 +4,7 @@
 use rig::{
     OneOrMany,
     agent::{Agent, Text},
-    client::CompletionClient,
+    client::{CompletionClient, ProviderClient},
     completion::Chat,
     message::{AssistantContent, Message, UserContent},
     providers::openai::responses_api::ResponsesCompletionModel,
@@ -18,7 +18,7 @@ pub struct RigRlm {
 }
 
 impl RigRlm {
-    pub fn new() -> Self {
+    pub fn new_local() -> Self {
         let agent = rig::providers::openai::Client::<reqwest::Client>::builder()
             .base_url("http://127.0.0.1:1234/v1")
             .api_key("")
@@ -27,6 +27,17 @@ impl RigRlm {
             .unwrap();
 
         let agent = agent.agent("qwen/qwen3-4b").preamble(PREAMBLE).build();
+
+        Self {
+            agent,
+            repl: REPL::new(),
+        }
+    }
+
+    pub fn new() -> Self {
+        let agent = rig::providers::openai::Client::from_env();
+
+        let agent = agent.agent("gpt-5-mini").preamble(PREAMBLE).build();
 
         Self {
             agent,
@@ -50,6 +61,8 @@ impl RigRlm {
                 .chat(prompt.clone(), message_history.clone())
                 .await?;
 
+            println!("Prompt result: {prompt_result}");
+
             message_history.push(Message::User {
                 content: OneOrMany::one(UserContent::Text(Text {
                     text: prompt.clone(),
@@ -70,7 +83,7 @@ impl RigRlm {
                 );
                 let res = self.agent.chat(prompt, message_history).await?;
 
-                return Ok(res);
+                return Ok(res.trim().to_string());
             } else {
                 let cmd_result = self.repl.run_command(cmd)?;
 
@@ -83,10 +96,14 @@ impl RigRlm {
 const PREAMBLE: &str = r#"""
 You are tasked with answering a query with associated context. You can access, transform, and analyze this context interactively in a REPL environment that can recursively query sub-LLMs, which you are strongly encouraged to use as much as possible. You will be queried iteratively until you provide a final answer.
 
+Commands available to you:
+1. `RUN <command>` - Run a Bash command. This will operate over the user's entire file system.
+2. `FINAL <message>` - Return a final message that will also be the signal for you to return your final response.
+3. You can also run Python code by using a triple-backtick marked code snippet, with the `repl` tag (see below for notes on the REPL environment).
+
 The REPL environment is initialized with:
-1. A `context` variable that contains extremely important information about your query. You should check the content of the `context` variable to understand what you are working with. Make sure you look through it sufficiently as you answer your query.
-2. A `llm_query` function that allows you to query an LLM (that can handle around 500K chars) inside your REPL environment.
-3. The ability to use `print()` statements to view the output of your REPL code and continue your reasoning.
+1. A `context` variable that may or may not contain extremely important information about your query. You should check the content of the `context` variable to understand what you are working with. Make sure you look through it sufficiently as you answer your query.
+2. The ability to use `print()` statements to view the output of your REPL code and continue your reasoning.
 
 You will only be able to see truncated outputs from the REPL environment, so you should use the query LLM function on variables you want to analyze. You will find this function especially useful when you have to analyze the semantics of the context. Use these variables as buffers to build up your final answer.
 Make sure to explicitly look through the entire context in REPL before answering your query. An example strategy is to first look at the context and figure out a chunking strategy, then break up the context into smart chunks, and query an LLM per chunk with a particular question and save the answers to a buffer, then query an LLM with all the buffers to produce your final answer.
@@ -111,13 +128,14 @@ for i in range(1, len(sections), 2):
     info = sections[i+1]
     summary = llm_query(f"Summarize this {{header}} section: {{info}}")
     buffers.append(f"{{header}}: {{summary}}")
-final_answer = llm_query(f"Based on these summaries, answer the original query: {{query}}\\n\\nSummaries:\\n" + "\\n".join(buffers))
+my_answer = llm_query(f"Based on these summaries, answer the original query: {{query}}\\n\\nSummaries:\\n" + "\\n".join(buffers))
 ```
-In the next step, we can return FINAL_VAR(final_answer).
+In the next step, we can return `my_answer`.
 
 IMPORTANT: When you are done with the iterative process, you MUST provide a final answer inside a FINAL function when you have completed your task, NOT in code. Do not use these tags unless you have completed your task. You have two options:
-1. Use FINAL <message> to provide the answer directly
-2. Use FINAL_VAR <message> to return a variable you have created in the REPL environment as your final output
+1. Use FINAL <message> to provide the answer directly back to the user.
+2. To return a variable as an output from any REPL script, you must assign it to the `my_answer` variable. Printing a variable will NOT return it.
+3. The final output of any REPL MUST be an integer or a string!
 
 Think step by step carefully, plan, and execute this plan immediately in your response - you must skip ALL prose outside of the provided commands.
 """#;

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+pyo3 = { version = "0.27.2", features = ["auto-initialize"] }
 reqwest = "0.12.26"
 rig-core = "0.27.0"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
