@@ -23,4 +23,3 @@ Make sure you have LM Studio and the `qwen/qwen3-4b` model loaded, then change `
 
 ## TODO
 - Set up `impl ExecutionEnvironment` for Firecracker
-- Make a Python function from Rust to call the LLM (`query_llm()`) then insert it into the pyo3 runtime

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+oneshot = { version = "0.1.11", default-features = false }
 pyo3 = { version = "0.27.2", features = ["auto-initialize"] }
 reqwest = "0.12.26"
 rig-core = "0.27.0"

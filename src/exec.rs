@@ -6,9 +6,12 @@
 use std::ffi::CString;
 
 use pyo3::{
-    Python,
-    types::{PyAnyMethods, PyDict, PyInt, PyString},
+    PyResult, Python,
+    types::{PyAnyMethods, PyDict, PyInt, PyModule, PyModuleMethods, PyString},
+    wrap_pyfunction,
 };
+
+use crate::llm::RigRlm;
 
 pub trait ExecutionEnvironment {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -26,6 +29,10 @@ impl ExecutionEnvironment for Pyo3Executor {
         let string: String = Python::attach(|py| {
             let io = py.import("io")?;
             let sys = py.import("sys")?;
+
+            let globals = py.import("__main__")?.dict();
+            let func = wrap_pyfunction!(query_llm, py)?;
+            globals.set_item("query_llm", func)?;
 
             let string_io = io.call_method0("StringIO")?;
             sys.setattr("stdout", &string_io)?;
@@ -55,4 +62,21 @@ impl ExecutionEnvironment for Pyo3Executor {
 
         Ok(string)
     }
+}
+
+/// A function to query an LLM (that can be called by an LLM).
+#[pyo3::pyfunction]
+fn query_llm(prompt: String) -> String {
+    // SAFETY: This is a prototype, we can deal with fixing unwrap and making this impl less fragile later
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let (tx, rx) = oneshot::channel();
+
+    rt.block_on(async {
+        let rlm = RigRlm::new_local();
+        let res = rlm.query(&prompt).await.unwrap();
+
+        tx.send(res).unwrap();
+    });
+
+    rx.try_recv().unwrap()
 }

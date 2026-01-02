@@ -1,13 +1,14 @@
 //! The LLM module.
 //! We technically use a rig Agent here, but because we don't really care here about the finer details of the completions, it's fine. For now, anyway.
 
+use pyo3::{PyResult, types::PyString};
 use rig::{
     OneOrMany,
     agent::{Agent, Text},
     client::{CompletionClient, ProviderClient},
-    completion::Chat,
+    completion::{Chat, Prompt},
     message::{AssistantContent, Message, UserContent},
-    providers::openai::responses_api::ResponsesCompletionModel,
+    providers::openai::{self, responses_api::ResponsesCompletionModel},
 };
 
 use crate::{
@@ -32,7 +33,7 @@ impl RigRlm<Pyo3Executor> {
             .build()
             .unwrap();
 
-        let agent = agent.agent("qwen/qwen3-4b").preamble(PREAMBLE).build();
+        let agent = agent.agent("qwen/qwen3-8b").preamble(PREAMBLE).build();
 
         Self {
             agent,
@@ -127,6 +128,7 @@ As an example, after analyzing the context and realizing its separated by Markdo
 ```repl
 # After finding out the context is separated by Markdown headers, we can chunk, summarize, and answer
 import re
+from llm import query_llm
 sections = re.split(r'### (.+)', context["content"])
 buffers = []
 for i in range(1, len(sections), 2):
@@ -134,7 +136,7 @@ for i in range(1, len(sections), 2):
     info = sections[i+1]
     summary = llm_query(f"Summarize this {{header}} section: {{info}}")
     buffers.append(f"{{header}}: {{summary}}")
-my_answer = llm_query(f"Based on these summaries, answer the original query: {{query}}\\n\\nSummaries:\\n" + "\\n".join(buffers))
+my_answer = query_llm(f"Based on these summaries, answer the original query: {{query}}\\n\\nSummaries:\\n" + "\\n".join(buffers))
 ```
 In the next step, we can return `my_answer`.
 
