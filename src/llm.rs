@@ -1,14 +1,13 @@
 //! The LLM module.
 //! We technically use a rig Agent here, but because we don't really care here about the finer details of the completions, it's fine. For now, anyway.
 
-use pyo3::{PyResult, types::PyString};
 use rig::{
     OneOrMany,
     agent::{Agent, Text},
     client::{CompletionClient, ProviderClient},
-    completion::{Chat, Prompt},
+    completion::Chat,
     message::{AssistantContent, Message, UserContent},
-    providers::openai::{self, responses_api::ResponsesCompletionModel},
+    providers::openai::CompletionModel,
 };
 
 use crate::{
@@ -20,7 +19,7 @@ pub struct RigRlm<T>
 where
     T: ExecutionEnvironment,
 {
-    agent: Agent<ResponsesCompletionModel>,
+    agent: Agent<CompletionModel>,
     repl: REPL<T>,
 }
 
@@ -33,7 +32,12 @@ impl RigRlm<Pyo3Executor> {
             .build()
             .unwrap();
 
-        let agent = agent.agent("qwen/qwen3-8b").preamble(PREAMBLE).build();
+        let agent = agent
+            .completion_model("qwen/qwen3-8b")
+            .completions_api()
+            .into_agent_builder()
+            .preamble(PREAMBLE)
+            .build();
 
         Self {
             agent,
@@ -44,7 +48,12 @@ impl RigRlm<Pyo3Executor> {
     pub fn new() -> Self {
         let agent = rig::providers::openai::Client::from_env();
 
-        let agent = agent.agent("gpt-5-mini").preamble(PREAMBLE).build();
+        let agent = agent
+            .completion_model("gpt-5.2")
+            .completions_api()
+            .into_agent_builder()
+            .preamble(PREAMBLE)
+            .build();
 
         Self {
             agent,
@@ -60,6 +69,8 @@ impl RigRlm<Pyo3Executor> {
             Continue using the REPL environment, which has the context variable, and querying sub-LLMs by writing to repl tags, and determine your answer. Your next action:"#
         );
 
+        tracing::trace!(target = "rlm", prompt);
+
         let mut message_history: Vec<Message> = Vec::new();
 
         loop {
@@ -68,7 +79,7 @@ impl RigRlm<Pyo3Executor> {
                 .chat(prompt.clone(), message_history.clone())
                 .await?;
 
-            println!("Prompt result: {prompt_result}");
+            tracing::trace!(target = "rlm", prompt_result);
 
             message_history.push(Message::User {
                 content: OneOrMany::one(UserContent::Text(Text {
@@ -92,9 +103,12 @@ impl RigRlm<Pyo3Executor> {
 
                 return Ok(res.trim().to_string());
             } else {
-                let cmd_result = self.repl.run_command(cmd)?;
+                prompt = match self.repl.run_command(cmd) {
+                    Ok(res) => res,
+                    Err(e) => e.to_string(),
+                };
 
-                prompt = cmd_result;
+                tracing::trace!(target = "rlm", prompt);
             }
         }
     }

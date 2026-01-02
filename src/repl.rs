@@ -94,10 +94,6 @@ pub struct RunArgs {
 impl Command {
     pub fn parse(input: &str) -> Self {
         if input.trim_start().starts_with("RUN") {
-            println!(
-                "Attempting to run command: {input}",
-                input = input.trim().trim_start_matches("RUN ")
-            );
             let mut iter = input.split_ascii_whitespace().skip(1);
             let Some(program) = iter.next() else {
                 panic!("There's no arguments here!")
@@ -128,12 +124,10 @@ impl Command {
                 .trim_start_matches("```repl\n")
                 .trim_end_matches("\n```");
 
-            println!("Trimmed code input: {input}");
-
             return Self::RunCode(input.to_string());
         }
 
-        unimplemented!("Handle more branches")
+        return Self::InvalidCommand;
     }
 }
 

@@ -6,8 +6,8 @@
 use std::ffi::CString;
 
 use pyo3::{
-    PyResult, Python,
-    types::{PyAnyMethods, PyDict, PyInt, PyModule, PyModuleMethods, PyString},
+    Python,
+    types::{PyAnyMethods, PyDict, PyInt, PyModuleMethods, PyString},
     wrap_pyfunction,
 };
 
