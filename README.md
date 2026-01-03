@@ -16,10 +16,13 @@ There are numerous advantages to this:
 ## How to run
 
 ### Using OpenAI
+Change `fn main()` to use `RigRlm::new` rather than `RigRlm::new_local`. Then simply use `cargo run`.
+
 Make sure you have `OPENAI_API_KEY` set, then simply use `cargo run`!
 
 ### Locally
-Make sure you have LM Studio and the `qwen/qwen3-4b` model loaded, then change `fn main()` to use `RigRlm::new_local` rather than `RigRlm::new`. Then simply use `cargo run`.
+Make sure you have LM Studio and the `qwen/qwen3-8b` model loaded, then use `cargo run`.
 
 ## TODO
 - Set up `impl ExecutionEnvironment` for Firecracker
+- Make binary more usable (ie switching between local and cloud)

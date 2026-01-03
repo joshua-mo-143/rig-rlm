@@ -69,7 +69,7 @@ impl RigRlm<Pyo3Executor> {
             Continue using the REPL environment, which has the context variable, and querying sub-LLMs by writing to repl tags, and determine your answer. Your next action:"#
         );
 
-        tracing::trace!(target = "rlm", prompt);
+        println!("Prompt: {prompt}");
 
         let mut message_history: Vec<Message> = Vec::new();
 
@@ -79,7 +79,7 @@ impl RigRlm<Pyo3Executor> {
                 .chat(prompt.clone(), message_history.clone())
                 .await?;
 
-            tracing::trace!(target = "rlm", prompt_result);
+            println!("Prompt result: {prompt_result}");
 
             message_history.push(Message::User {
                 content: OneOrMany::one(UserContent::Text(Text {
@@ -108,7 +108,7 @@ impl RigRlm<Pyo3Executor> {
                     Err(e) => e.to_string(),
                 };
 
-                tracing::trace!(target = "rlm", prompt);
+                println!("Prompt: {prompt}");
             }
         }
     }
@@ -142,13 +142,12 @@ As an example, after analyzing the context and realizing its separated by Markdo
 ```repl
 # After finding out the context is separated by Markdown headers, we can chunk, summarize, and answer
 import re
-from llm import query_llm
 sections = re.split(r'### (.+)', context["content"])
 buffers = []
 for i in range(1, len(sections), 2):
     header = sections[i]
     info = sections[i+1]
-    summary = llm_query(f"Summarize this {{header}} section: {{info}}")
+    summary = query_llm(f"Summarize this {{header}} section: {{info}}")
     buffers.append(f"{{header}}: {{summary}}")
 my_answer = query_llm(f"Based on these summaries, answer the original query: {{query}}\\n\\nSummaries:\\n" + "\\n".join(buffers))
 ```
